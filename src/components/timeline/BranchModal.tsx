@@ -22,13 +22,16 @@ const SUGGESTED_SCENARIOS = [
 
 export function BranchModal() {
   const { branchModal, closeBranchModal, isGeneratingBranch, setGeneratingBranch } = useUIStore()
-  const { getNodeById, getNodePath, addBranch } = useTimelineStore()
+  const currentTimelineId = useTimelineStore(state => state.currentTimelineId)
+  const getNodePath = useTimelineStore(state => state.getNodePath)
+  const addBranch = useTimelineStore(state => state.addBranch)
+  const node = useTimelineStore(state =>
+    branchModal.nodeId ? state.getNodeById(branchModal.nodeId) : null
+  )
 
   const [customScenario, setCustomScenario] = useState('')
   const [selectedScenario, setSelectedScenario] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-
-  const node = branchModal.nodeId ? getNodeById(branchModal.nodeId) : null
 
   // Reset state when modal opens/closes
   useEffect(() => {

@@ -27,7 +27,8 @@ const nodeTypes = {
 }
 
 export function TimelineFlow() {
-  const timelineNodes = useTimelineStore(state => state.nodes)
+  const currentTimelineId = useTimelineStore(state => state.currentTimelineId)
+  const timelineNodes = useTimelineStore(state => state.getNodes())
   const theme = useUIStore(state => state.theme)
 
   const [nodes, setNodes, onNodesChange] = useNodesState([])
@@ -35,6 +36,7 @@ export function TimelineFlow() {
 
   // Convert timeline nodes to React Flow nodes with layout
   useEffect(() => {
+    if (!timelineNodes) return
     const nodeArray = Object.values(timelineNodes.byId)
     if (nodeArray.length === 0) return
 

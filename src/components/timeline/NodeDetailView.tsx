@@ -16,10 +16,11 @@ import { formatDate } from '@/lib/utils/helpers'
 
 export function NodeDetailView() {
   const { nodeDetail, closeNodeDetail, openBranchModal } = useUIStore()
-  const getNodeById = useTimelineStore(state => state.getNodeById)
+  const currentTimelineId = useTimelineStore(state => state.currentTimelineId)
+  const node = useTimelineStore(state =>
+    nodeDetail.nodeId ? state.getNodeById(nodeDetail.nodeId) : null
+  )
   const theme = useUIStore(state => state.theme)
-
-  const node = nodeDetail.nodeId ? getNodeById(nodeDetail.nodeId) : null
 
   // Handle ESC key to close
   useEffect(() => {

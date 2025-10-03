@@ -9,6 +9,7 @@ import { GlassCard } from '@/components/ui/GlassCard'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { ErrorMessage } from '@/components/ui/ErrorMessage'
+import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { useTimelineStore } from '@/lib/store/timelineStore'
 import { useUIStore } from '@/lib/store/uiStore'
 import type { GenerateTimelineResponse } from '@/lib/types/api'
@@ -18,7 +19,7 @@ export default function Home() {
   const [searchInput, setSearchInput] = useState('')
   const [error, setError] = useState<string | null>(null)
 
-  const initializeTimeline = useTimelineStore(state => state.initializeTimeline)
+  const saveTimeline = useTimelineStore(state => state.saveTimeline)
   const setGeneratingTimeline = useUIStore(state => state.setGeneratingTimeline)
   const isGenerating = useUIStore(state => state.isGeneratingTimeline)
 
@@ -46,8 +47,8 @@ export default function Home() {
         throw new Error(data.error || 'Failed to generate timeline')
       }
 
-      // Initialize timeline in store
-      initializeTimeline(data.data.person, data.data.milestones)
+      // Save timeline to store (creates new or switches to existing)
+      saveTimeline(data.data.person, data.data.milestones)
 
       // Navigate to timeline view
       router.push('/timeline')
@@ -60,36 +61,42 @@ export default function Home() {
   }
 
   return (
-    <Container className="py-12 md:py-20">
-      <div className="max-w-4xl mx-auto">
-        {/* Hero Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-12"
-        >
+    <div className="min-h-screen flex flex-col">
+      {/* Theme Toggle - Top Right */}
+      <div className="absolute top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
+
+      <Container className="py-12 md:py-20 flex-1">
+        <div className="max-w-4xl mx-auto">
+          {/* Hero Section */}
           <motion.div
-            className="inline-flex items-center justify-center mb-6"
-            animate={{ rotate: [0, 10, -10, 0] }}
-            transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-12"
           >
-            <Sparkles className="w-16 h-16 text-cyan-500" />
+            <motion.div
+              className="inline-flex items-center justify-center mb-6"
+              animate={{ rotate: [0, 10, -10, 0] }}
+              transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+            >
+              <Sparkles className="w-16 h-16 text-cyan-500" />
+            </motion.div>
+
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-cyan-500 via-purple-500 to-cyan-500 bg-clip-text text-transparent font-[family-name:var(--font-space-grotesk)]">
+              WhatIfAI
+            </h1>
+
+            <p className="text-xl md:text-2xl text-gray-700 dark:text-gray-300 mb-4">
+              Explore Alternate Timelines with AI
+            </p>
+
+            <p className="text-base md:text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+              Discover how history could have unfolded differently. Enter any celebrity or public figure
+              and explore branching narratives of their life powered by Claude AI.
+            </p>
           </motion.div>
-
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-cyan-500 via-purple-500 to-cyan-500 bg-clip-text text-transparent font-[family-name:var(--font-space-grotesk)]">
-            WhatIfAI
-          </h1>
-
-          <p className="text-xl md:text-2xl text-gray-700 dark:text-gray-300 mb-4">
-            Explore Alternate Timelines with AI
-          </p>
-
-          <p className="text-base md:text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Discover how history could have unfolded differently. Enter any celebrity or public figure
-            and explore branching narratives of their life powered by Claude AI.
-          </p>
-        </motion.div>
 
         {/* Search Card */}
         <motion.div
@@ -174,7 +181,8 @@ export default function Home() {
             </GlassCard>
           ))}
         </motion.div>
-      </div>
-    </Container>
+        </div>
+      </Container>
+    </div>
   )
 }

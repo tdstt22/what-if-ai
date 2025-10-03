@@ -63,3 +63,17 @@ export interface LayoutEdge {
   source: string
   target: string
 }
+
+export interface SavedTimeline {
+  id: string // unique timeline ID
+  person: string // person name (e.g., "Steve Jobs")
+  nodes: {
+    byId: Record<string, TimelineNode>
+    allIds: string[]
+    rootId: string | null
+  }
+  currentPath: string[]
+  createdAt: number // timestamp when created
+  lastAccessed: number // timestamp when last viewed
+  milestoneCount: number // cached count for display
+}

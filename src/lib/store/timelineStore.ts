@@ -1,23 +1,19 @@
 /**
  * Zustand store for timeline state management
+ * Refactored to support multiple saved timelines
  */
 
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import { TimelineNode, CachedResponse, Milestone } from '../types/timeline'
+import { TimelineNode, CachedResponse, Milestone, SavedTimeline } from '../types/timeline'
 import { generateId, getNodePath, getAllLeafNodes, getMaxDepth } from '../utils/helpers'
 
-interface TimelineState {
-  // Data (Normalized for O(1) lookups)
-  nodes: {
-    byId: Record<string, TimelineNode>
-    allIds: string[]
-    rootId: string | null
-  }
+const MAX_TIMELINES = 20 // Maximum number of saved timelines
 
-  // Navigation
-  currentPath: string[]
-  selectedNodeId: string | null
+interface TimelineState {
+  // Multi-timeline support
+  timelines: SavedTimeline[]
+  currentTimelineId: string | null
 
   // UI State
   loading: boolean
@@ -26,17 +22,28 @@ interface TimelineState {
   // LLM Cache
   llmCache: Record<string, CachedResponse>
 
-  // Current person being explored
-  currentPerson: string | null
+  // ============ NEW ACTIONS ============
+  // Save a new timeline
+  saveTimeline: (person: string, milestones: Milestone[]) => string // returns timeline ID
 
-  // Actions
-  initializeTimeline: (person: string, milestones: Milestone[]) => void
+  // Switch to a different timeline
+  switchTimeline: (timelineId: string) => void
+
+  // Delete a timeline
+  deleteTimeline: (timelineId: string) => void
+
+  // Get all timelines (for sidebar)
+  getAllTimelines: () => SavedTimeline[]
+
+  // Get current timeline
+  getCurrentTimeline: () => SavedTimeline | null
+
+  // ============ EXISTING ACTIONS (updated to work with current timeline) ============
   addBranch: (parentId: string, milestones: Milestone[], alternateScenario: string) => void
   selectNode: (nodeId: string) => void
   expandNode: (nodeId: string) => void
   collapseNode: (nodeId: string) => void
   deleteNode: (nodeId: string) => void
-  clearTimeline: () => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
 
@@ -45,22 +52,39 @@ interface TimelineState {
   getAllLeafNodes: () => TimelineNode[]
   getDepth: () => number
   getNodeById: (nodeId: string) => TimelineNode | undefined
+  getCurrentPerson: () => string | null
+  getNodes: () => { byId: Record<string, TimelineNode>; allIds: string[]; rootId: string | null } | null
 }
 
 export const useTimelineStore = create<TimelineState>()(
   persist(
     (set, get) => ({
       // Initial state
-      nodes: { byId: {}, allIds: [], rootId: null },
-      currentPath: [],
-      selectedNodeId: null,
+      timelines: [],
+      currentTimelineId: null,
       loading: false,
       error: null,
       llmCache: {},
-      currentPerson: null,
 
-      // Initialize timeline with root node and milestones
-      initializeTimeline: (person: string, milestones: Milestone[]) => {
+      // ============ NEW ACTIONS IMPLEMENTATION ============
+
+      // Save a new timeline
+      saveTimeline: (person: string, milestones: Milestone[]) => {
+        const state = get()
+
+        // Check if timeline for this person already exists
+        const existingTimeline = state.timelines.find(
+          t => t.person.toLowerCase() === person.toLowerCase()
+        )
+
+        if (existingTimeline) {
+          // Switch to existing timeline instead of creating duplicate
+          set({ currentTimelineId: existingTimeline.id })
+          return existingTimeline.id
+        }
+
+        // Generate new timeline ID
+        const timelineId = generateId()
         const rootId = generateId()
         const nodes: Record<string, TimelineNode> = {}
         const allIds: string[] = []
@@ -95,19 +119,109 @@ export const useTimelineStore = create<TimelineState>()(
           }
         })
 
-        set({
+        // Create new saved timeline
+        const newTimeline: SavedTimeline = {
+          id: timelineId,
+          person,
           nodes: { byId: nodes, allIds, rootId },
           currentPath: [rootId],
-          selectedNodeId: rootId,
-          currentPerson: person,
+          createdAt: Date.now(),
+          lastAccessed: Date.now(),
+          milestoneCount: allIds.length,
+        }
+
+        // Add to timelines array
+        let updatedTimelines = [...state.timelines, newTimeline]
+
+        // Enforce max timelines limit (FIFO)
+        if (updatedTimelines.length > MAX_TIMELINES) {
+          // Remove oldest timeline (by createdAt)
+          updatedTimelines.sort((a, b) => a.createdAt - b.createdAt)
+          updatedTimelines = updatedTimelines.slice(1)
+        }
+
+        set({
+          timelines: updatedTimelines,
+          currentTimelineId: timelineId,
           error: null,
+        })
+
+        return timelineId
+      },
+
+      // Switch to a different timeline
+      switchTimeline: (timelineId: string) => {
+        const state = get()
+        const timeline = state.timelines.find(t => t.id === timelineId)
+
+        if (!timeline) {
+          console.error('Timeline not found:', timelineId)
+          return
+        }
+
+        // Update lastAccessed
+        const updatedTimelines = state.timelines.map(t =>
+          t.id === timelineId
+            ? { ...t, lastAccessed: Date.now() }
+            : t
+        )
+
+        set({
+          timelines: updatedTimelines,
+          currentTimelineId: timelineId,
         })
       },
 
-      // Add a branch to a parent node
+      // Delete a timeline
+      deleteTimeline: (timelineId: string) => {
+        const state = get()
+        const updatedTimelines = state.timelines.filter(t => t.id !== timelineId)
+
+        // If we deleted the current timeline, switch to the most recent one
+        let newCurrentId = state.currentTimelineId
+        if (state.currentTimelineId === timelineId) {
+          if (updatedTimelines.length > 0) {
+            // Switch to most recently accessed timeline
+            const sorted = [...updatedTimelines].sort((a, b) => b.lastAccessed - a.lastAccessed)
+            newCurrentId = sorted[0].id
+          } else {
+            newCurrentId = null
+          }
+        }
+
+        set({
+          timelines: updatedTimelines,
+          currentTimelineId: newCurrentId,
+        })
+      },
+
+      // Get all timelines (for sidebar)
+      getAllTimelines: () => {
+        const state = get()
+        // Return sorted by last accessed (most recent first)
+        return [...state.timelines].sort((a, b) => b.lastAccessed - a.lastAccessed)
+      },
+
+      // Get current timeline
+      getCurrentTimeline: () => {
+        const state = get()
+        if (!state.currentTimelineId) return null
+        return state.timelines.find(t => t.id === state.currentTimelineId) || null
+      },
+
+      // ============ EXISTING ACTIONS (updated) ============
+
+      // Add a branch to a parent node in current timeline
       addBranch: (parentId: string, milestones: Milestone[], alternateScenario: string) => {
         const state = get()
-        const parent = state.nodes.byId[parentId]
+        const currentTimeline = state.getCurrentTimeline()
+
+        if (!currentTimeline) {
+          console.error('No current timeline')
+          return
+        }
+
+        const parent = currentTimeline.nodes.byId[parentId]
         if (!parent) {
           console.error('Parent node not found')
           return
@@ -119,8 +233,8 @@ export const useTimelineStore = create<TimelineState>()(
           return
         }
 
-        const updatedById = { ...state.nodes.byId }
-        const updatedAllIds = [...state.nodes.allIds]
+        const updatedById = { ...currentTimeline.nodes.byId }
+        const updatedAllIds = [...currentTimeline.nodes.allIds]
         const newNodeIds: string[] = []
 
         // Create new nodes for the branch
@@ -160,12 +274,24 @@ export const useTimelineStore = create<TimelineState>()(
           }
         })
 
+        // Update the timeline in the array
+        const updatedTimelines = state.timelines.map(t =>
+          t.id === state.currentTimelineId
+            ? {
+                ...t,
+                nodes: {
+                  byId: updatedById,
+                  allIds: updatedAllIds,
+                  rootId: currentTimeline.nodes.rootId,
+                },
+                milestoneCount: updatedAllIds.length,
+                lastAccessed: Date.now(),
+              }
+            : t
+        )
+
         set({
-          nodes: {
-            byId: updatedById,
-            allIds: updatedAllIds,
-            rootId: state.nodes.rootId,
-          },
+          timelines: updatedTimelines,
           error: null,
         })
       },
@@ -173,10 +299,13 @@ export const useTimelineStore = create<TimelineState>()(
       // Select a node
       selectNode: (nodeId: string) => {
         const state = get()
-        const node = state.nodes.byId[nodeId]
+        const currentTimeline = state.getCurrentTimeline()
+        if (!currentTimeline) return
+
+        const node = currentTimeline.nodes.byId[nodeId]
         if (!node) return
 
-        const updatedById = { ...state.nodes.byId }
+        const updatedById = { ...currentTimeline.nodes.byId }
 
         // Deselect all nodes
         Object.keys(updatedById).forEach(id => {
@@ -186,54 +315,83 @@ export const useTimelineStore = create<TimelineState>()(
         // Select the target node
         updatedById[nodeId] = { ...updatedById[nodeId], selected: true }
 
-        set({
-          nodes: {
-            ...state.nodes,
-            byId: updatedById,
-          },
-          selectedNodeId: nodeId,
-          currentPath: getNodePath(updatedById, nodeId).map(n => n.id),
-        })
+        const updatedTimelines = state.timelines.map(t =>
+          t.id === state.currentTimelineId
+            ? {
+                ...t,
+                nodes: {
+                  ...currentTimeline.nodes,
+                  byId: updatedById,
+                },
+                currentPath: getNodePath(updatedById, nodeId).map(n => n.id),
+              }
+            : t
+        )
+
+        set({ timelines: updatedTimelines })
       },
 
-      // Expand a node to show its children
+      // Expand a node
       expandNode: (nodeId: string) => {
         const state = get()
-        const node = state.nodes.byId[nodeId]
+        const currentTimeline = state.getCurrentTimeline()
+        if (!currentTimeline) return
+
+        const node = currentTimeline.nodes.byId[nodeId]
         if (!node) return
 
-        set({
-          nodes: {
-            ...state.nodes,
-            byId: {
-              ...state.nodes.byId,
-              [nodeId]: { ...node, expanded: true },
-            },
-          },
-        })
+        const updatedTimelines = state.timelines.map(t =>
+          t.id === state.currentTimelineId
+            ? {
+                ...t,
+                nodes: {
+                  ...currentTimeline.nodes,
+                  byId: {
+                    ...currentTimeline.nodes.byId,
+                    [nodeId]: { ...node, expanded: true },
+                  },
+                },
+              }
+            : t
+        )
+
+        set({ timelines: updatedTimelines })
       },
 
-      // Collapse a node to hide its children
+      // Collapse a node
       collapseNode: (nodeId: string) => {
         const state = get()
-        const node = state.nodes.byId[nodeId]
+        const currentTimeline = state.getCurrentTimeline()
+        if (!currentTimeline) return
+
+        const node = currentTimeline.nodes.byId[nodeId]
         if (!node) return
 
-        set({
-          nodes: {
-            ...state.nodes,
-            byId: {
-              ...state.nodes.byId,
-              [nodeId]: { ...node, expanded: false },
-            },
-          },
-        })
+        const updatedTimelines = state.timelines.map(t =>
+          t.id === state.currentTimelineId
+            ? {
+                ...t,
+                nodes: {
+                  ...currentTimeline.nodes,
+                  byId: {
+                    ...currentTimeline.nodes.byId,
+                    [nodeId]: { ...node, expanded: false },
+                  },
+                },
+              }
+            : t
+        )
+
+        set({ timelines: updatedTimelines })
       },
 
       // Delete a node and all its descendants
       deleteNode: (nodeId: string) => {
         const state = get()
-        const node = state.nodes.byId[nodeId]
+        const currentTimeline = state.getCurrentTimeline()
+        if (!currentTimeline) return
+
+        const node = currentTimeline.nodes.byId[nodeId]
         if (!node || !node.parentId) {
           console.error('Cannot delete root node or node not found')
           return
@@ -245,7 +403,7 @@ export const useTimelineStore = create<TimelineState>()(
 
         while (queue.length > 0) {
           const currentId = queue.shift()!
-          const current = state.nodes.byId[currentId]
+          const current = currentTimeline.nodes.byId[currentId]
           if (current) {
             current.childIds.forEach(childId => {
               toDelete.add(childId)
@@ -255,8 +413,8 @@ export const useTimelineStore = create<TimelineState>()(
         }
 
         // Remove from parent's children
-        const parent = state.nodes.byId[node.parentId]
-        const updatedById = { ...state.nodes.byId }
+        const parent = currentTimeline.nodes.byId[node.parentId]
+        const updatedById = { ...currentTimeline.nodes.byId }
         updatedById[node.parentId] = {
           ...parent,
           childIds: parent.childIds.filter(id => id !== nodeId),
@@ -267,26 +425,23 @@ export const useTimelineStore = create<TimelineState>()(
           delete updatedById[id]
         })
 
-        const updatedAllIds = state.nodes.allIds.filter(id => !toDelete.has(id))
+        const updatedAllIds = currentTimeline.nodes.allIds.filter(id => !toDelete.has(id))
 
-        set({
-          nodes: {
-            byId: updatedById,
-            allIds: updatedAllIds,
-            rootId: state.nodes.rootId,
-          },
-        })
-      },
+        const updatedTimelines = state.timelines.map(t =>
+          t.id === state.currentTimelineId
+            ? {
+                ...t,
+                nodes: {
+                  byId: updatedById,
+                  allIds: updatedAllIds,
+                  rootId: currentTimeline.nodes.rootId,
+                },
+                milestoneCount: updatedAllIds.length,
+              }
+            : t
+        )
 
-      // Clear the entire timeline
-      clearTimeline: () => {
-        set({
-          nodes: { byId: {}, allIds: [], rootId: null },
-          currentPath: [],
-          selectedNodeId: null,
-          currentPerson: null,
-          error: null,
-        })
+        set({ timelines: updatedTimelines })
       },
 
       // Set loading state
@@ -295,38 +450,61 @@ export const useTimelineStore = create<TimelineState>()(
       // Set error message
       setError: (error: string | null) => set({ error }),
 
-      // Computed: Get node path
+      // ============ COMPUTED GETTERS ============
+
+      // Get node path
       getNodePath: (nodeId: string) => {
         const state = get()
-        return getNodePath(state.nodes.byId, nodeId)
+        const currentTimeline = state.getCurrentTimeline()
+        if (!currentTimeline) return []
+        return getNodePath(currentTimeline.nodes.byId, nodeId)
       },
 
-      // Computed: Get all leaf nodes
+      // Get all leaf nodes
       getAllLeafNodes: () => {
         const state = get()
-        return getAllLeafNodes(state.nodes.byId)
+        const currentTimeline = state.getCurrentTimeline()
+        if (!currentTimeline) return []
+        return getAllLeafNodes(currentTimeline.nodes.byId)
       },
 
-      // Computed: Get maximum depth
+      // Get maximum depth
       getDepth: () => {
         const state = get()
-        return getMaxDepth(state.nodes.byId)
+        const currentTimeline = state.getCurrentTimeline()
+        if (!currentTimeline) return 0
+        return getMaxDepth(currentTimeline.nodes.byId)
       },
 
-      // Computed: Get node by ID
+      // Get node by ID
       getNodeById: (nodeId: string) => {
         const state = get()
-        return state.nodes.byId[nodeId]
+        const currentTimeline = state.getCurrentTimeline()
+        if (!currentTimeline) return undefined
+        return currentTimeline.nodes.byId[nodeId]
+      },
+
+      // Get current person
+      getCurrentPerson: () => {
+        const state = get()
+        const currentTimeline = state.getCurrentTimeline()
+        return currentTimeline?.person || null
+      },
+
+      // Get nodes (for backwards compatibility)
+      getNodes: () => {
+        const state = get()
+        const currentTimeline = state.getCurrentTimeline()
+        return currentTimeline?.nodes || null
       },
     }),
     {
       name: 'whatifai-timeline-storage',
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
-        nodes: state.nodes,
-        currentPath: state.currentPath,
+        timelines: state.timelines,
+        currentTimelineId: state.currentTimelineId,
         llmCache: state.llmCache,
-        currentPerson: state.currentPerson,
       }),
     }
   )

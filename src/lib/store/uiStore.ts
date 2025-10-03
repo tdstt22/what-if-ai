@@ -33,6 +33,11 @@ interface UIState {
   openNodeDetail: (nodeId: string) => void
   closeNodeDetail: () => void
 
+  // New Timeline Modal
+  newTimelineModalOpen: boolean
+  openNewTimelineModal: () => void
+  closeNewTimelineModal: () => void
+
   // Loading overlay for API calls
   isGeneratingTimeline: boolean
   isGeneratingBranch: boolean
@@ -42,6 +47,8 @@ interface UIState {
   // Sidebar (for timeline history, if needed)
   sidebarOpen: boolean
   toggleSidebar: () => void
+  sidebarCollapsed: boolean
+  toggleSidebarCollapse: () => void
 
   // Zoom controls visibility
   showControls: boolean
@@ -120,6 +127,17 @@ export const useUIStore = create<UIState>()(
         })
       },
 
+      // New Timeline Modal
+      newTimelineModalOpen: false,
+
+      openNewTimelineModal: () => {
+        set({ newTimelineModalOpen: true })
+      },
+
+      closeNewTimelineModal: () => {
+        set({ newTimelineModalOpen: false })
+      },
+
       // Loading states
       isGeneratingTimeline: false,
       isGeneratingBranch: false,
@@ -132,11 +150,17 @@ export const useUIStore = create<UIState>()(
         set({ isGeneratingBranch: loading })
       },
 
-      // Sidebar
+      // Sidebar (default closed to avoid hydration issues)
       sidebarOpen: false,
 
       toggleSidebar: () => {
         set(state => ({ sidebarOpen: !state.sidebarOpen }))
+      },
+
+      sidebarCollapsed: false,
+
+      toggleSidebarCollapse: () => {
+        set(state => ({ sidebarCollapsed: !state.sidebarCollapsed }))
       },
 
       // Controls
