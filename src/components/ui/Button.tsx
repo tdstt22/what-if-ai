@@ -39,16 +39,16 @@ export function Button({
 
   return (
     <motion.button
-      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} flex items-center justify-center ${className}`}
       disabled={disabled || isLoading}
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
       {...props}
     >
       {isLoading ? (
-        <span className="flex items-center justify-center gap-2">
+        <>
           <svg
-            className="animate-spin h-5 w-5"
+            className="animate-spin h-4 w-4 mr-2"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -68,7 +68,7 @@ export function Button({
             />
           </svg>
           Loading...
-        </span>
+        </>
       ) : (
         children
       )}

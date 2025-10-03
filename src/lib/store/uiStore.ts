@@ -12,6 +12,11 @@ interface BranchModalState {
   nodeId: string | null
 }
 
+interface NodeDetailState {
+  isOpen: boolean
+  nodeId: string | null
+}
+
 interface UIState {
   // Theme
   theme: Theme
@@ -22,6 +27,11 @@ interface UIState {
   branchModal: BranchModalState
   openBranchModal: (nodeId: string) => void
   closeBranchModal: () => void
+
+  // Node Detail View
+  nodeDetail: NodeDetailState
+  openNodeDetail: (nodeId: string) => void
+  closeNodeDetail: () => void
 
   // Loading overlay for API calls
   isGeneratingTimeline: boolean
@@ -80,6 +90,30 @@ export const useUIStore = create<UIState>()(
       closeBranchModal: () => {
         set({
           branchModal: {
+            isOpen: false,
+            nodeId: null,
+          },
+        })
+      },
+
+      // Node Detail View
+      nodeDetail: {
+        isOpen: false,
+        nodeId: null,
+      },
+
+      openNodeDetail: (nodeId: string) => {
+        set({
+          nodeDetail: {
+            isOpen: true,
+            nodeId,
+          },
+        })
+      },
+
+      closeNodeDetail: () => {
+        set({
+          nodeDetail: {
             isOpen: false,
             nodeId: null,
           },

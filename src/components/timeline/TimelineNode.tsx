@@ -7,7 +7,7 @@
 import { memo } from 'react'
 import { Handle, Position, NodeProps } from '@xyflow/react'
 import { motion } from 'framer-motion'
-import { Calendar, Users, Zap, GitBranch } from 'lucide-react'
+import { Calendar, Users, Zap, GitBranch, Expand } from 'lucide-react'
 import { TimelineNode as TimelineNodeType } from '@/lib/types/timeline'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { formatDate } from '@/lib/utils/helpers'
@@ -15,7 +15,13 @@ import { useUIStore } from '@/lib/store/uiStore'
 
 function TimelineNodeComponent({ data }: NodeProps<TimelineNodeType>) {
   const openBranchModal = useUIStore(state => state.openBranchModal)
+  const openNodeDetail = useUIStore(state => state.openNodeDetail)
   const theme = useUIStore(state => state.theme)
+
+  const handleExpandClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    openNodeDetail(data.id)
+  }
 
   const handleBranchClick = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -43,7 +49,7 @@ function TimelineNodeComponent({ data }: NodeProps<TimelineNodeType>) {
       <GlassCard
         className="w-[300px] p-4 group cursor-pointer"
         hover
-        onClick={handleBranchClick}
+        onClick={handleExpandClick}
       >
         {/* Node Type Badge */}
         <div
@@ -92,20 +98,27 @@ function TimelineNodeComponent({ data }: NodeProps<TimelineNodeType>) {
           </div>
         )}
 
-        {/* Branch Button (appears on hover) */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          whileHover={{ opacity: 1, y: 0 }}
-          className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity"
-        >
-          <button
+        {/* Action Buttons (appear on hover) */}
+        <div className="absolute bottom-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <motion.button
+            onClick={handleExpandClick}
+            className="p-2 rounded-lg bg-cyan-500/80 hover:bg-cyan-600 text-white shadow-lg"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            aria-label="Expand details"
+          >
+            <Expand className="w-4 h-4" />
+          </motion.button>
+          <motion.button
             onClick={handleBranchClick}
             className="p-2 rounded-lg bg-purple-500/80 hover:bg-purple-600 text-white shadow-lg"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
             aria-label="Create branch"
           >
             <GitBranch className="w-4 h-4" />
-          </button>
-        </motion.div>
+          </motion.button>
+        </div>
       </GlassCard>
 
       <Handle

@@ -10,6 +10,7 @@ import { motion } from 'framer-motion'
 import { Home } from 'lucide-react'
 import { TimelineFlow } from '@/components/timeline/TimelineFlow'
 import { BranchModal } from '@/components/timeline/BranchModal'
+import { NodeDetailView } from '@/components/timeline/NodeDetailView'
 import { Button } from '@/components/ui/Button'
 import { useTimelineStore } from '@/lib/store/timelineStore'
 import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton'
@@ -66,12 +67,15 @@ export default function TimelinePage() {
         </div>
 
         <div className="backdrop-blur-md bg-white/10 dark:bg-black/20 border border-white/20 dark:border-white/10 rounded-lg px-4 py-2 text-sm text-gray-700 dark:text-gray-300">
-          Click any milestone to create an alternate branch
+          Click milestone to view details • Hover for actions
         </div>
       </motion.div>
 
       {/* Timeline Visualization */}
       <TimelineFlow />
+
+      {/* Node Detail View */}
+      <NodeDetailView />
 
       {/* Branch Modal */}
       <BranchModal />
