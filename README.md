@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# WhatIfAI - Setup Guide
 
-## Getting Started
+## Quick Start
 
-First, run the development server:
-
+### 1. Install Dependencies
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Configure Environment Variables
+Copy `.env.example` to `.env.local` and add your Anthropic API key:
+```bash
+cp .env.example .env.local
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Then edit `.env.local` and add your key:
+```
+ANTHROPIC_API_KEY=your_actual_api_key_here
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Get your API key from: https://console.anthropic.com/
 
-## Learn More
+### 3. Run Development Server
+```bash
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## How to Use
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. **Enter a Celebrity Name**: On the home page, type any public figure's name (e.g., "Albert Einstein", "Marie Curie")
+2. **Generate Timeline**: Click "Generate Timeline" to create 10 AI-powered milestones
+3. **Explore Branches**: Click any milestone node to create alternate "what if" scenarios
+4. **Navigate**: Use the React Flow controls to zoom, pan, and explore your timeline
 
-## Deploy on Vercel
+## Features Implemented
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+✅ Celebrity timeline generation with 10 milestones
+✅ Branching timeline exploration (up to 10 levels deep)
+✅ Interactive React Flow visualization
+✅ Dark/Light mode with futuristic glassmorphic UI
+✅ Framer Motion animations
+✅ Responsive design (mobile, tablet, desktop)
+✅ LocalStorage persistence
+✅ Intelligent caching to minimize API costs
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Tech Stack
+
+- **Framework**: Next.js 15.5.4 (App Router)
+- **AI**: Anthropic Claude Sonnet 4.5
+- **Visualization**: React Flow v12
+- **Animations**: Framer Motion
+- **State**: Zustand with persistence
+- **Styling**: Tailwind CSS 4
+- **Icons**: Lucide React
+- **Validation**: Zod
+
+## Project Structure
+
+```
+src/
+├── app/                    # Next.js pages
+│   ├── api/               # API routes
+│   ├── timeline/          # Timeline visualization page
+│   ├── layout.tsx         # Root layout
+│   └── page.tsx           # Home page
+├── components/
+│   ├── ui/                # Reusable UI components
+│   ├── layout/            # Layout components
+│   └── timeline/          # Timeline-specific components
+└── lib/
+    ├── api/               # API clients and cache
+    ├── store/             # Zustand stores
+    ├── types/             # TypeScript types
+    └── utils/             # Utility functions
+```
+
+## Notes
+
+- Timeline data persists in localStorage
+- API responses are cached to reduce costs
+- Maximum branching depth is 10 levels
+- Theme preference syncs with system settings
