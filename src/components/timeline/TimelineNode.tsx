@@ -37,7 +37,7 @@ function TimelineNodeComponent({ data }: NodeProps<TimelineNodeType>) {
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
-      className="relative"
+      className="relative group"
     >
       {/* Handles for connections */}
       <Handle
@@ -46,8 +46,25 @@ function TimelineNodeComponent({ data }: NodeProps<TimelineNodeType>) {
         className="!bg-cyan-500 !w-3 !h-3 !border-2 !border-white"
       />
 
+      {/* Neon Glow Effect - Outer Glow (appears on hover) */}
+      <div
+        className="absolute -inset-3 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none blur-xl"
+        style={{
+          background: `radial-gradient(circle at center, ${accentColor} 0%, ${accentColor}80 30%, ${accentColor}40 50%, transparent 70%)`,
+        }}
+      />
+
+      {/* Neon Border Glow (appears on hover) */}
+      <div
+        className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none"
+        style={{
+          boxShadow: `0 0 30px ${accentColor}80, 0 0 60px ${accentColor}60, 0 0 90px ${accentColor}40, inset 0 0 30px ${accentColor}20`,
+          border: `2px solid ${accentColor}`,
+        }}
+      />
+
       <GlassCard
-        className="w-[300px] p-4 group cursor-pointer"
+        className="w-[300px] p-4 cursor-pointer relative z-10"
         hover
         onClick={handleExpandClick}
       >

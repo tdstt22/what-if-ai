@@ -4,7 +4,7 @@
 
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { TimelineFlow } from '@/components/timeline/TimelineFlow'
@@ -17,20 +17,29 @@ import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton'
 
 export default function TimelinePage() {
   const router = useRouter()
+  const [isHydrated, setIsHydrated] = useState(false)
   const currentTimelineId = useTimelineStore(state => state.currentTimelineId)
   const nodes = useTimelineStore(state => state.getNodes())
   const currentPerson = useTimelineStore(state => state.getCurrentPerson())
 
-  // Redirect to home if no timeline is loaded
+  // Handle hydration and redirect if needed
   useEffect(() => {
-    if (!nodes || !nodes.rootId || nodes.allIds.length === 0) {
-      router.push('/')
-    }
+    setIsHydrated(true)
+
+    // Check for timeline data after a brief delay to ensure hydration is complete
+    const timer = setTimeout(() => {
+      if (!nodes || !nodes.rootId || nodes.allIds.length === 0) {
+        router.push('/')
+      }
+    }, 100)
+
+    return () => clearTimeout(timer)
   }, [nodes, router])
 
-  if (!nodes || !nodes.rootId || nodes.allIds.length === 0) {
+  // Show loading during hydration or if no nodes
+  if (!isHydrated || !nodes || !nodes.rootId || nodes.allIds.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
+      <div className="relative h-screen flex items-center justify-center">
         <LoadingSkeleton />
       </div>
     )
