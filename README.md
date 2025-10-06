@@ -1,5 +1,10 @@
 # WhatIfAI - Setup Guide
 
+![WhatIfAI Home](/public/what-if-ai-home.png "WhatIfAI Home")
+
+![WhatIfAI Timeline](/public/what-if-timeline.png "WhatIfAI Timeline")
+
+
 ## Quick Start
 
 ### 1. Install Dependencies
@@ -37,12 +42,19 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ## Features Implemented
 
 ✅ Celebrity timeline generation with 10 milestones
+
 ✅ Branching timeline exploration (up to 10 levels deep)
+
 ✅ Interactive React Flow visualization
+
 ✅ Dark/Light mode with futuristic glassmorphic UI
+
 ✅ Framer Motion animations
+
 ✅ Responsive design (mobile, tablet, desktop)
+
 ✅ LocalStorage persistence
+
 ✅ Intelligent caching to minimize API costs
 
 ## Tech Stack
