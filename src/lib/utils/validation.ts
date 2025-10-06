@@ -41,6 +41,10 @@ export const ClaudeBranchResponseSchema = z.object({
 // Helper function to safely parse JSON
 export function parseJSON<T>(json: string, schema: z.ZodSchema<T>): T {
   try {
+    // Remove the first line if it starts with ```json
+    if (json.startsWith('```json')) {
+      json = json.replace(/```json\n|```/g, '');
+    }
     const parsed = JSON.parse(json)
     return schema.parse(parsed)
   } catch (error) {

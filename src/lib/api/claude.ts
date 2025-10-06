@@ -78,7 +78,7 @@ export async function generateTimeline(person: string, context?: string): Promis
     : `Generate a timeline for: ${person}`
 
   const message = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 4096,
     system: TIMELINE_SYSTEM_PROMPT,
     messages: [
@@ -120,7 +120,7 @@ Alternate scenario: ${alternateScenario}
 Generate 5-7 milestones showing how ${person}'s life could have unfolded differently after this alternate scenario.`
 
   const message = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: 3072,
     system: BRANCH_SYSTEM_PROMPT,
     messages: [
